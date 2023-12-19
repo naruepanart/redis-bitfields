@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -10,57 +11,51 @@ import (
 )
 
 const (
-	redisAddress  = ""
-	redisPassword = ""
-	cacheKey      = "vote"
+	addr  = ""
+	pass = ""
+	key = "vote"
 )
 
-// getRandomNumber generates a random number between min and max (inclusive).
-func getRandomNumber(min, max int) int {
-	source := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(source)
+func randNum(min, max int) int {
+	src := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(src)
 	return r.Intn(max-min+1) + min
 }
 
-// setBitField sets the bit at the given position in the Redis bitfield.
-func setBitField(client *redis.Client, cacheKey string, position int, value int) error {
-	err := client.BitField(context.Background(), cacheKey, "set", "u32", position, value).Err()
+func setBit(client *redis.Client, k string, pos string, val int) error {
+	err := client.BitField(context.Background(), k, "set", "u32", pos, val).Err()
 	return err
 }
 
-// getBitField gets the bit at the given position from the Redis bitfield.
-func getBitField(client *redis.Client, cacheKey string, position int) (int64, error) {
-	bitValue, err := client.BitField(context.Background(), cacheKey, "get", "u32", position).Result()
-	return bitValue[0], err
+func getBit(client *redis.Client, k string, pos string) (int64, error) {
+	bitVal, err := client.BitField(context.Background(), k, "get", "u32", pos).Result()
+	return bitVal[0], err
 }
 
 func main() {
-	client := redis.NewClient(&redis.Options{
-		Addr:     redisAddress,
-		Password: redisPassword,
+	c := redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: pass,
 	})
-	defer client.Close()
+	defer c.Close()
 
-	// Generate random citizen ID and vote number
-	randomCitizenID := getRandomNumber(1, 100)
-	log.Printf("Citizen ID: %d\n", randomCitizenID)
+	randID := fmt.Sprintf("#%d", randNum(1, 100_000))
+	log.Printf("Citizen ID: %s\n", randID)
 
-	randomVoteNumber := getRandomNumber(1, 20)
-	log.Printf("Vote number: %d\n", randomVoteNumber)
+	randVoteNum := randNum(1, 20)
+	log.Printf("Vote number: %d\n", randVoteNum)
 
-	// Set the bit in the Redis bitfield
-	err := setBitField(client, cacheKey, randomCitizenID, randomVoteNumber)
+	err := setBit(c, key, randID, randVoteNum)
 	if err != nil {
 		log.Fatalf("Error setting bit: %v", err)
 	}
 
 	log.Println("Bit set successfully")
 
-	// Retrieve the bit from the Redis bitfield
-	bitValue, err := getBitField(client, cacheKey, randomCitizenID)
+	bitVal, err := getBit(c, key, randID)
 	if err != nil {
 		log.Fatalf("Error getting bit: %v", err)
 	}
 
-	log.Printf("Bit value: %d\n", bitValue)
+	log.Printf("Bit value: %d\n", bitVal)
 }
