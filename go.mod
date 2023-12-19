@@ -1,4 +1,4 @@
-module votingsystem
+module rbitfields
 
 go 1.21.5
 
