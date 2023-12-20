@@ -44,7 +44,8 @@ func main() {
 	rVote := randNum(0, 1)
 	log.Printf("Vote: %d\n", rVote)
 
-	if err := setBit(client, redisKey, rID, rVote); err != nil {
+	err := setBit(client, redisKey, rID, rVote)
+	if err != nil {
 		log.Fatalf("Error setting bit: %v", err)
 	}
 
