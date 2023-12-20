@@ -10,48 +10,47 @@ import (
 )
 
 const (
-	addr = ""
-	pass = ""
-	key  = "vote"
+	redisAddr = "" // Replace with your Redis server address
+	redisPass = "" // Replace with your Redis password
+	redisKey  = "vote"
 )
 
 func randNum(min, max int) int {
-	src := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(src)
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
 	return r.Intn(max-min+1) + min
 }
 
-func setBit(client *redis.Client, k string, pos int, val int) error {
-	err := client.BitField(context.Background(), k, "set", "u1", pos, val).Err()
+func setBit(client *redis.Client, key string, pos, val int) error {
+	err := client.BitField(context.Background(), key, "set", "u1", pos, val).Err()
 	return err
 }
 
-func getBit(client *redis.Client, k string, pos int) (int64, error) {
-	bitVal, err := client.BitField(context.Background(), k, "get", "u1", pos).Result()
+func getBit(client *redis.Client, key string, pos int) (int64, error) {
+	bitVal, err := client.BitField(context.Background(), key, "get", "u1", pos).Result()
 	return bitVal[0], err
 }
 
 func main() {
-	c := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: pass,
+	client := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: redisPass,
 	})
-	defer c.Close()
+	defer client.Close()
 
-	randID := randNum(1, 100_000)
-	log.Printf("Citizen ID: %d\n", randID)
+	rID := randNum(1, 100_000)
+	log.Printf("Citizen ID: %d\n", rID)
 
-	randYesNo := randNum(0, 1)
-	log.Printf("Vote: %d\n", randYesNo)
+	rVote := randNum(0, 1)
+	log.Printf("Vote: %d\n", rVote)
 
-	err := setBit(c, key, randID, randYesNo)
-	if err != nil {
+	if err := setBit(client, redisKey, rID, rVote); err != nil {
 		log.Fatalf("Error setting bit: %v", err)
 	}
 
 	log.Println("Bit set successfully")
 
-	bitVal, err := getBit(c, key, randID)
+	bitVal, err := getBit(client, redisKey, rID)
 	if err != nil {
 		log.Fatalf("Error getting bit: %v", err)
 	}
